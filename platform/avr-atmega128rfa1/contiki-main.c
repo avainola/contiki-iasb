@@ -38,7 +38,7 @@
 #define PRINTA(...)
 #endif
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #define PRINTD(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 #else
@@ -88,10 +88,14 @@
 #include "net/rime/rime-udp.h"
 #endif
 
+#if LOGTOUSB
+#include "usb.h"
+#endif /* LOGTOUSB */
+
 #include "net/rime/rime.h"
 
 /* Track interrupt flow through mac, rdc and radio driver */
-//#define DEBUGFLOWSIZE 32
+#define DEBUGFLOWSIZE 32
 #if DEBUGFLOWSIZE
 uint8_t debugflowsize,debugflow[DEBUGFLOWSIZE];
 #define DEBUGFLOW(c) if (debugflowsize<(DEBUGFLOWSIZE-1)) debugflow[debugflowsize++]=c
@@ -177,23 +181,33 @@ void initialize(void)
  * which could be duplicated using another host computer.
  */
 #if !RF230BB_CONF_LEDONPORTE1   //Conflicts with USART0
+
 #ifdef RAVEN_LCD_INTERFACE
   rs232_init(RS232_PORT_0, USART_BAUD_38400,USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
   rs232_set_input(0,raven_lcd_serial_input);
-#else
+#else /* RAVEN_LCD_INTERFACE */
   /* Generic or slip connection on uart0 */
   rs232_init(RS232_PORT_0, USART_BAUD_38400,USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
-#endif
-#endif
+#endif /* RAVEN_LCD_INTERFACE */
 
+#endif /* !RF230BB_CONF_LEDONPORTE1 */
+
+  /* Redirect stdout */
+#ifdef LOGTOUSB
+  /* initialise deRFnode usb and redirect stdout to it */
+  usb_io_init();
+#else /* LOGTOUSB */
+
+#if RF230BB_CONF_LEDONPORTE1 || defined(RAVEN_LCD_INTERFACE)
   /* Second rs232 port for debugging or slip alternative */
   rs232_init(RS232_PORT_1, USART_BAUD_57600,USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
-  /* Redirect stdout */
-#if RF230BB_CONF_LEDONPORTE1 || defined(RAVEN_LCD_INTERFACE)
   rs232_redirect_stdout(RS232_PORT_1);
 #else
   rs232_redirect_stdout(RS232_PORT_0);
 #endif
+
+#endif /* DERFNODE_STDOUT_TO_USB */
+
   clock_init();
 
   if(MCUSR & (1<<PORF )) PRINTD("Power-on reset.\n");
@@ -469,11 +483,11 @@ main(void)
 
 /* Set DEBUGFLOWSIZE in contiki-conf.h to track path through MAC, RDC, and RADIO */
 #if DEBUGFLOWSIZE
-  if (debugflowsize) {
-    debugflow[debugflowsize]=0;
-    PRINTF("%s",debugflow);
-    debugflowsize=0;
-   }
+    if (debugflowsize) {
+	  debugflow[debugflowsize]=0;
+	  PRINTF("%s",debugflow);
+	  debugflowsize=0;
+    }
 #endif
 
 #if PERIODICPRINTS
@@ -486,98 +500,93 @@ main(void)
       rtimer_set(&rt, RTIMER_NOW()+ RTIMER_ARCH_SECOND*1UL, 1,(void *) rtimercycle, NULL);
       rtimerflag=0;
 #else
-  if (clocktime!=clock_seconds()) {
-     clocktime=clock_seconds();
+    if (clocktime!=clock_seconds()) {
+      clocktime=clock_seconds();
 #endif
 
 #if STAMPS
-if ((clocktime%STAMPS)==0) {
+      if ((clocktime%STAMPS)==0) {
 #if ENERGEST_CONF_ON
 #include "lib/print-stats.h"
-	print_stats();
+    	print_stats();
 #elif RADIOSTATS
-extern volatile unsigned long radioontime;
-  PRINTF("%u(%u)s\n",clocktime,radioontime);
+    	extern volatile unsigned long radioontime;
+    	PRINTF("%u(%u)s\n",clocktime,radioontime);
 #else
-  PRINTF("%us\n",clocktime);
+    	PRINTF("%us\n",clocktime);
 #endif
 
-}
+      }
 #endif
 #if TESTRTIMER
       clocktime+=1;
 #endif
 
 #if PINGS && NETSTACK_CONF_WITH_IPV6
-extern void raven_ping6(void); 
-if ((clocktime%PINGS)==1) {
-  PRINTF("**Ping\n");
-  raven_ping6();
-}
+      extern void raven_ping6(void);
+      if ((clocktime%PINGS)==1) {
+    	PRINTF("**Ping\n");
+    	raven_ping6();
+      }
 #endif
 
 #if ROUTES && NETSTACK_CONF_WITH_IPV6
-if ((clocktime%ROUTES)==2) {
+      if ((clocktime%ROUTES)==2) {
       
-extern uip_ds6_netif_t uip_ds6_if;
+    	extern uip_ds6_netif_t uip_ds6_if;
 
-  uint8_t i,j;
-  PRINTF("\nAddresses [%u max]\n",UIP_DS6_ADDR_NB);
-  for (i=0;i<UIP_DS6_ADDR_NB;i++) {
-    if (uip_ds6_if.addr_list[i].isused) {
-      ipaddr_add(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-    }
-  }
-  PRINTF("\nNeighbors [%u max]\n",NBR_TABLE_MAX_NEIGHBORS);
+    	uint8_t i,j;
+    	PRINTF("\nAddresses [%u max]\n",UIP_DS6_ADDR_NB);
+    	j=1;
+    	for (i=0;i<UIP_DS6_ADDR_NB;i++) {
+    	  if (uip_ds6_if.addr_list[i].isused) {
+    		ipaddr_add(&uip_ds6_if.addr_list[i].ipaddr);
+    		PRINTF("\n");
+    	  }
+    	}
+    	PRINTF("\nNeighbors [%u max]\n",NBR_TABLE_MAX_NEIGHBORS);
 
-  for(nbr = nbr_table_head(ds6_neighbors);
-      nbr != NULL;
-      nbr = nbr_table_next(ds6_neighbors, nbr)) {
-    ipaddr_add(&nbr->ipaddr);
-    PRINTF("\n");
-    j=0;
-  }
-  if (j) PRINTF("  <none>");
-  PRINTF("\nRoutes [%u max]\n",UIP_DS6_ROUTE_NB);
-  {
-    uip_ds6_route_t *r;
-    PRINTF("\nRoutes [%u max]\n",UIP_DS6_ROUTE_NB);
-    j = 1;
-    for(r = uip_ds6_route_head();
-        r != NULL;
-        r = uip_ds6_route_next(r)) {
-      ipaddr_add(&r->ipaddr);
-      PRINTF("/%u (via ", r->length);
-      ipaddr_add(uip_ds6_route_nexthop(r));
-      PRINTF(") %lus\n", r->state.lifetime);
-      j = 0;
-    }
-  }
-  if (j) PRINTF("  <none>");
-  PRINTF("\n---------\n");
-}
+    	for(nbr = nbr_table_head(ds6_neighbors); nbr != NULL; nbr = nbr_table_next(ds6_neighbors, nbr)) {
+    	  ipaddr_add(&nbr->ipaddr);
+    	  PRINTF("\n");
+    	  j=0;
+    	}
+    	if (j) PRINTF("  <none>");
+
+    	uip_ds6_route_t *r;
+    	PRINTF("\nRoutes [%u max]\n",UIP_DS6_ROUTE_NB);
+    	j = 1;
+    	for(r = uip_ds6_route_head(); r != NULL; r = uip_ds6_route_next(r)) {
+    	  ipaddr_add(&r->ipaddr);
+    	  PRINTF("/%u (via ", r->length);
+    	  ipaddr_add(uip_ds6_route_nexthop(r));
+    	  PRINTF(") %lus\n", r->state.lifetime);
+    	  j = 0;
+    	}
+    	if (j) PRINTF("  <none>");
+    	PRINTF("\n---------\n");
+      }
 #endif
 
 #if STACKMONITOR
-if ((clocktime%STACKMONITOR)==3) {
-  extern uint16_t __bss_end;
-  uint16_t p=(uint16_t)&__bss_end;
-  do {
-    if (*(uint16_t *)p != 0x4242) {
-      PRINTF("Never-used stack > %d bytes\n",p-(uint16_t)&__bss_end);
-      break;
-    }
-    p+=10;
-  } while (p<RAMEND-10);
-}
+      if ((clocktime%STACKMONITOR)==3) {
+    	extern uint16_t __bss_end;
+    	uint16_t p=(uint16_t)&__bss_end;
+    	do {
+    	  if (*(uint16_t *)p != 0x4242) {
+    		PRINTF("Never-used stack > %d bytes\n",p-(uint16_t)&__bss_end);
+    		break;
+    	  }
+    	  p+=10;
+    	} while (p<RAMEND-10);
+      }
 #endif
 
     }
 #endif /* PERIODICPRINTS */
 
 #if RF230BB&&0
-extern uint8_t rf230processflag;
+    extern uint8_t rf230processflag;
     if (rf230processflag) {
       PRINTF("rf230p%d",rf230processflag);
       rf230processflag=0;
@@ -585,11 +594,11 @@ extern uint8_t rf230processflag;
 #endif
 
 #if RF230BB&&0
-extern uint8_t rf230_interrupt_flag;
+    extern uint8_t rf230_interrupt_flag;
     if (rf230_interrupt_flag) {
- //   if (rf230_interrupt_flag!=11) {
+//    if (rf230_interrupt_flag!=11) {
         PRINTF("**RI%u",rf230_interrupt_flag);
- //   }
+// 	  }
       rf230_interrupt_flag=0;
     }
 #endif
