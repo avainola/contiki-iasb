@@ -39,7 +39,6 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
   char *m;
 
-
   /* The packetbuf_dataptr() returns a pointer to the first data byte
      in the received packet. */
   m = packetbuf_dataptr();
@@ -101,21 +100,23 @@ PROCESS_THREAD(unicast_process, ev, data)
     
   PROCESS_BEGIN();
 
-  printf("STAR-NODE started!\n");
-  led_set(LED_0, LED_ON);
-
-  unicast_open(&unicast, 146, &unicast_callbacks);
-
-  memb_init(&sinkaddress);
-
+  /* initialize LEDs */
+  io_init();
   /* initialize TWI interface and connected sensors */
   TWI_MasterInit();
   BMA150_Init();
   ISL29020_Init();
   TMP102_Init();
 
-  static struct unicast_message msg;
+  printf("STAR-NODE started!\n");
+  led_set(LED_0, LED_ON);
 
+  unicast_open(&unicast, 146, &unicast_callbacks);
+
+  /* initiliaze memory block for holding the sink address */
+  memb_init(&sinkaddress);
+
+  static struct unicast_message msg;
   static struct etimer et;
   etimer_set(&et, CLOCK_SECOND * 17);
 
@@ -135,14 +136,14 @@ PROCESS_THREAD(unicast_process, ev, data)
       /* measure luminosity */
       while(ISL29020_WakeUp());
       ISL29020_StartOneshotMeasurement();
-      // delay needed for correct luminosity measurement
+      /* delay needed for correct luminosity measurement */
       _delay_ms(100);
       while(ISL29020_GetLuminosity(&msg.lumi));
       while(ISL29020_PowerDown());
 
       /* measure acceleration */
       while(BMA150_WakeUp());
-      //read twice because 1st read after wake-up is trash
+      /* read twice because 1st read after wake-up is trash */
       while(BMA150_GetAcceleration(&msg.accel));
       while(BMA150_GetAcceleration(&msg.accel));
       while(BMA150_PowerDown());

@@ -2,7 +2,6 @@
 #include "net/rime/rime.h"
 #include "i2c_sensors_interface.h"
 #include "io_access.h"
-//#include "sensors.h"
 #include <stdio.h>
 #include <util/delay.h>
 
@@ -12,9 +11,6 @@ struct unicast_message {
   luminosity_t lumi;
   acceleration_t accel;
 };
-
-//MEMB(sinkaddress, linkaddr_t, 1);
-//static const linkaddr_t *sink_addr;
 
 /* These hold the broadcast and unicast structures, respectively. */
 static struct broadcast_conn broadcast;
@@ -35,7 +31,7 @@ static void print_results(const temperature_t* temp, const luminosity_t* lumi, c
 {
    /* print current temperature */
    printf("Temperature: %c%d.%02d C\n", (temp->sign ? '-' : '+'),
-                                    	temp->integralDigit,
+                                      temp->integralDigit,
                                     	temp->fractionalDigit);
 
    /* print current luminosity sensor value */

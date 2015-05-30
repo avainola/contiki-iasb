@@ -57,10 +57,7 @@ static void print_results(void)
 
 
 /**
- * @brief Helper function for querying the sensors
- *
- * Determines the current sensor parameters.
- *
+ * @brief Function for querying the sensors
  */
 static void measure(void)
 {
@@ -73,14 +70,14 @@ static void measure(void)
 	/* measure luminosity */
 	while(ISL29020_WakeUp());
 	ISL29020_StartOneshotMeasurement();
-	// delay needed for correct luminosity measurement
+	/* delay needed for correct luminosity measurement */
 	_delay_ms(100);
 	while(ISL29020_GetLuminosity(&lumi));
 	while(ISL29020_PowerDown());
 
 	/* measure acceleration */
 	while(BMA150_WakeUp());
-	//read twice because 1st read after wake-up is trash
+	/* read twice because 1st read after wake-up is trash */
 	while(BMA150_GetAcceleration(&accel));
 	while(BMA150_GetAcceleration(&accel));
 	while(BMA150_PowerDown());
@@ -133,6 +130,7 @@ PROCESS_THREAD(sensors_process, ev, data)
     measure();
     print_results();
     if (led == 3) led = 0;
+    /* reset the timer */
     etimer_reset(&et);
   }
 
