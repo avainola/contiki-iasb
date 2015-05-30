@@ -1,6 +1,6 @@
 /*
- * @author    dresden elektronik ingenieurtechnik gmbh: http://www.dresden-elektronik.de
- * @author    Support email: wireless@dresden-elektronik.de
+ * @author	 dresden elektronik ingenieurtechnik gmbh: http://www.dresden-elektronik.de
+ * @author	 Support email: wireless@dresden-elektronik.de
  *
  * Copyright (c) 2011, dresden elektronik ingenieurtechnik gmbh. All rights reserved.
  *
@@ -8,9 +8,9 @@
  */
 
 /* === INCLUDES ============================================================ */
-#include <stdbool.h>          // include bool definition
-#include <avr/io.h>           // include io definitions
-
+#include <stdbool.h>	// include bool definition
+#include <avr/io.h>	    // include io definitions
+ 
 #include "io_access.h"
 
 /* === TYPES =============================================================== */
@@ -31,47 +31,47 @@ static uint8_t status_led = 0;
  *
  * All LEDs are 'LOW ACTIVE' (RCB, STB and deRFnode).
  *
- * @param   led_nr   number of LED
- * @param   led_mode mode which should be set (LED_ON, LED_OFF, LED_TOGGLE)
+ * @param	led_nr	number of LED
+ * @param	led_mode mode which should be set (LED_ON, LED_OFF, LED_TOGGLE)
  *
  */
 void led_set(led_number_t led_nr, led_mode_t led_mode)
 {
-   switch (led_mode)
-   {
-   case LED_ON:
-      status_led &= ~_BV(led_nr);
-      break;
-   case LED_OFF:
-      status_led |= _BV(led_nr);
-      break;
-   case LED_TOGGLE:
-      if(status_led & _BV(led_nr))
-          status_led &= ~_BV(led_nr);
-      else
-          status_led |= _BV(led_nr);
-      break;
-   default:
-      break; // do nothing
-   }
+	switch (led_mode)
+	{
+	case LED_ON:
+		status_led &= ~_BV(led_nr);
+		break;
+	case LED_OFF:
+		status_led |= _BV(led_nr);
+		break;
+	case LED_TOGGLE:
+		if(status_led & _BV(led_nr))
+			status_led &= ~_BV(led_nr);
+		else
+			status_led |= _BV(led_nr);
+		break;
+	default:
+		break; // do nothing
+	}
 
-   switch (led_nr)
-   {
-   case LED_0:
-      if(status_led & _BV(LED_0)) {LED_0_PORT |= _BV(LED_0_PIN);} else{LED_0_PORT &= ~_BV(LED_0_PIN);}
-      LED_0_DDR  |=  _BV(LED_0_PIN);
-      break;
-   case LED_1:
-      if(status_led & _BV(LED_1)) {LED_1_PORT |= _BV(LED_1_PIN);} else{LED_1_PORT &= ~_BV(LED_1_PIN);}
-      LED_1_DDR  |=  _BV(LED_1_PIN);
-      break;
-   case LED_2:
-      if(status_led & _BV(LED_2)) {LED_2_PORT |= _BV(LED_2_PIN);} else{LED_2_PORT &= ~_BV(LED_2_PIN);}
-      LED_2_DDR  |=  _BV(LED_2_PIN);
-      break;
-   default:
-      break; // do nothing
-   }
+	switch (led_nr)
+	{
+	case LED_0:
+		if(status_led & _BV(LED_0)) {LED_0_PORT |= _BV(LED_0_PIN);} else{LED_0_PORT &= ~_BV(LED_0_PIN);}
+		LED_0_DDR  |=  _BV(LED_0_PIN);
+		break;
+	case LED_1:
+		if(status_led & _BV(LED_1)) {LED_1_PORT |= _BV(LED_1_PIN);} else{LED_1_PORT &= ~_BV(LED_1_PIN);}
+        LED_1_DDR  |=  _BV(LED_1_PIN);
+		break;
+	case LED_2:
+		if(status_led & _BV(LED_2)) {LED_2_PORT |= _BV(LED_2_PIN);} else{LED_2_PORT &= ~_BV(LED_2_PIN);}
+		LED_2_DDR  |=  _BV(LED_2_PIN);
+		break;
+	default:
+		break; // do nothing
+	}
 }
 
 
@@ -83,9 +83,9 @@ void led_set(led_number_t led_nr, led_mode_t led_mode)
  */
 void led_init(void)
 {
-   led_set(LED_0, LED_OFF);
-   led_set(LED_1, LED_OFF);
-   led_set(LED_2, LED_OFF);
+	led_set(LED_0, LED_OFF);
+	led_set(LED_1, LED_OFF);
+	led_set(LED_2, LED_OFF);
 }
 
 /**
@@ -96,13 +96,13 @@ void led_init(void)
  */
 void io_init(void)
 {
-   /* initialize buttons */
-   BUTTON_0_DDR  &= ~_BV(BUTTON_0_PIN);
-   BUTTON_0_PORT |=  _BV(BUTTON_0_PIN);
-   BUTTON_1_DDR  &= ~_BV(BUTTON_1_PIN);
-   BUTTON_1_PORT |=  _BV(BUTTON_1_PIN);
-   /* initialize LEDs */
-   led_init();
+	/* initialize buttons */
+	BUTTON_0_DDR  &= ~_BV(BUTTON_0_PIN);
+	BUTTON_0_PORT |=  _BV(BUTTON_0_PIN);
+	BUTTON_1_DDR  &= ~_BV(BUTTON_1_PIN);
+	BUTTON_1_PORT |=  _BV(BUTTON_1_PIN);
+	/* initialize LEDs */
+	led_init();
 }
 
 /**
@@ -117,18 +117,17 @@ void io_init(void)
  */
 button_state_t button_pressed(button_number_t button_nr)
 {
-   switch(button_nr)
-   {
-   case BUTTON_0:
-     return (BUTTON_0_PINS & _BV(BUTTON_0_PIN)) ? BUTTON_RELEASED : BUTTON_PRESSED;
-     break;
+	switch(button_nr)
+	{
+	case BUTTON_0:
+        return (BUTTON_0_PINS & _BV(BUTTON_0_PIN)) ? BUTTON_RELEASED : BUTTON_PRESSED;
+        break;
 
-   case BUTTON_1:
-      return (BUTTON_1_PINS & _BV(BUTTON_1_PIN)) ? BUTTON_RELEASED : BUTTON_PRESSED;
-      break;
-   }
-
-   return BUTTON_RELEASED;
+	case BUTTON_1:
+		return (BUTTON_1_PINS & _BV(BUTTON_1_PIN)) ? BUTTON_RELEASED : BUTTON_PRESSED;
+		break;
+	}
+	return BUTTON_RELEASED;
 }
 
 /* EOF */
@@ -137,5 +136,5 @@ button_state_t button_pressed(button_number_t button_nr)
 
 int leds_onboard_get(void)
 {
-    return status_led;
+	 return status_led;
 }
