@@ -95,6 +95,12 @@ PROCESS_THREAD(sensors_process, ev, data)
   /* initialize LEDs and stuff */
   io_init();
 
+  /* initialize TWI interface and connected sensors */
+  TWI_MasterInit();
+  BMA150_Init();
+  ISL29020_Init();
+  TMP102_Init();
+
   printf("Sensors application started!\n");
 
   static struct etimer et;
