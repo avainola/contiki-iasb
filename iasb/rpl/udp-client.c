@@ -38,6 +38,9 @@
 #include "powertrace.h"
 #endif
 #include "io_access.h"
+#include "i2c_sensors_interface.h"
+#include "twi_master.h"
+#include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -61,6 +64,13 @@
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
+/* This is the structure of messages. */
+typedef struct message {
+  temperature_t temp;
+  luminosity_t lumi;
+  acceleration_t accel;
+};
+
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client process");
 AUTOSTART_PROCESSES(&udp_client_process);
@@ -83,10 +93,37 @@ send_packet(void *ptr)
 	static int seq_id;
 	char buf[MAX_PAYLOAD_LEN];
 
+	static struct message msg;
+
 	seq_id++;
-	PRINTF("DATA send to %d 'Hello %d'\n", server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
-	sprintf(buf, "Hello %d from the client", seq_id);
-	uip_udp_packet_sendto(client_conn, buf, strlen(buf), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+
+    /* measure temperature */
+    while(TMP102_WakeUp());
+    while(TMP102_StartOneshotMeasurement());
+    while(TMP102_GetTemperature(&msg.temp, true));
+    while(TMP102_PowerDown());
+
+    /* measure luminosity */
+    while(ISL29020_WakeUp());
+    ISL29020_StartOneshotMeasurement();
+    /* delay needed for correct luminosity measurement */
+    _delay_ms(100);
+    while(ISL29020_GetLuminosity(&msg.lumi));
+    while(ISL29020_PowerDown());
+
+    /* measure acceleration */
+    while(BMA150_WakeUp());
+    /* read twice because 1st read after wake-up is trash */
+    while(BMA150_GetAcceleration(&msg.accel));
+    while(BMA150_GetAcceleration(&msg.accel));
+    while(BMA150_PowerDown());
+
+//    char* message = (char *)msg;
+//    message[strlen(message)] =
+
+	PRINTF("DATA %d send to %d'\n", seq_id, server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1]);
+//	sprintf(buf, "Hello %d from the client", seq_id);
+	uip_udp_packet_sendto(client_conn, &msg, strlen(buf), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -156,6 +193,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
 	set_global_address();
 	
 	PRINTF("UDP client process started\n");
+
+	/* initialize TWI interface and connected sensors */
+	TWI_MasterInit();
+	BMA150_Init();
+  	ISL29020_Init();
+  	TMP102_Init();
+
 	led_set(LED_0, LED_ON);
 
 	print_local_addresses();

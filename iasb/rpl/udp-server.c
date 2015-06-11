@@ -55,20 +55,58 @@
 
 static struct uip_udp_conn *server_conn;
 
+/* This is the structure of messages. */
+typedef struct message {
+  temperature_t temp;
+  luminosity_t lumi;
+  acceleration_t accel;
+};
+
 PROCESS(udp_server_process, "UDP server process");
 AUTOSTART_PROCESSES(&udp_server_process);
+
 /*---------------------------------------------------------------------------*/
+/* Helper function for console printout
+   Prints the received sensor parameters values.*/
+static void print_results(const temperature_t* temp, const luminosity_t* lumi, const acceleration_t* accel)
+{
+   /* print current temperature */
+   printf("Temperature: %c%d.%02d C\n", (temp->sign ? '-' : '+'),
+                                      temp->integralDigit,
+                                    	temp->fractionalDigit);
+
+   /* print current luminosity sensor value */
+   printf("Luminosity: %d Lux\n", *lumi);
+
+   /* print current acceleration values */
+   printf("Acceleration: x: %c%d.%02d g\n", accel->acc_x_sign ? '-' : '+',
+									  	accel->acc_x_integral,
+                                        accel->acc_x_fractional);
+
+   printf("              y: %c%d.%02d g\n", accel->acc_y_sign ? '-' : '+',
+                                        accel->acc_y_integral,
+                                        accel->acc_y_fractional);
+
+   printf("              z: %c%d.%02d g\n", accel->acc_z_sign ? '-' : '+',
+                                        accel->acc_z_integral,
+                                        accel->acc_z_fractional);
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void
 tcpip_handler(void)
 {
 	char *appdata;
 
+	static struct message *msg;
+
 	if(uip_newdata()) {
-		appdata = (char *)uip_appdata;
-		appdata[uip_datalen()] = 0;
-		PRINTF("DATA recv '%s' from ", appdata);
-		PRINTF("%d", UIP_IP_BUF->srcipaddr.u8[9]);
+		msg = (struct message *)uip_appdata;
+		PRINTF("DATA recv from '%s' \n", UIP_IP_BUF->srcipaddr.u8[9]);
+		print_results(msg->temp, msg->lumi, msg->accel);
 		PRINTF("\n");
+
 #if SERVER_REPLY
 		PRINTF("DATA sending reply\n");
 		uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
@@ -97,6 +135,7 @@ print_local_addresses(void)
 		}
 	}
 }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_server_process, ev, data)
 {

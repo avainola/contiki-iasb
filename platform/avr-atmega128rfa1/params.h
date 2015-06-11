@@ -12,7 +12,7 @@
  *
  * Note the parameters in this file can be changed without forcing a complete rebuild.
  */
-#define CONTIKI_CONF_RANDOM_MAC 0        //adds 78 bytes
+#define CONTIKI_CONF_RANDOM_MAC 1        //adds 78 bytes
 #define CONTIKI_CONF_SETTINGS_MANAGER 0  //adds 1696 bytes
 
 #if CONTIKI_CONF_SETTINGS_MANAGER
@@ -81,7 +81,7 @@ extern uint8_t eemem_domain_name[30];
 #define PARAMS_EUI64ADDR {0x02, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x00, 0x01}
 #else
 //#define PARAMS_EUI64ADDR {0x02, 0xNN, 0xNN, 0xff, 0xfe, 0xNN, 0xNN, 0xNN}
-#define PARAMS_EUI64ADDR {0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x00, 0x01}
+#define PARAMS_EUI64ADDR {0x02, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x00, 0x01}
 #endif
 /* This form of of EUI64 mac allows 16 bit 6LoWPAN header compression on multihops */
 //#define PARAMS_EUI64ADDR {0x02, 0x00, 0x00, 0xff, 0xfe, 0x00, 0xNN, 0xNN}
