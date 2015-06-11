@@ -37,6 +37,7 @@
 #include "dev/button-sensor.h"
 
 #include "io_access.h"
+#include "i2c_sensors_interface.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +57,7 @@
 static struct uip_udp_conn *server_conn;
 
 /* This is the structure of messages. */
-typedef struct message {
+struct message {
   temperature_t temp;
   luminosity_t lumi;
   acceleration_t accel;
@@ -71,23 +72,23 @@ AUTOSTART_PROCESSES(&udp_server_process);
 static void print_results(const temperature_t* temp, const luminosity_t* lumi, const acceleration_t* accel)
 {
    /* print current temperature */
-   printf("Temperature: %c%d.%02d C\n", (temp->sign ? '-' : '+'),
+   printf("   Temperature: %c%d.%02d C\n", (temp->sign ? '-' : '+'),
                                       temp->integralDigit,
                                     	temp->fractionalDigit);
 
    /* print current luminosity sensor value */
-   printf("Luminosity: %d Lux\n", *lumi);
+   printf("   Luminosity: %d Lux\n", *lumi);
 
    /* print current acceleration values */
-   printf("Acceleration: x: %c%d.%02d g\n", accel->acc_x_sign ? '-' : '+',
+   printf("   Acceleration: x: %c%d.%02d g\n", accel->acc_x_sign ? '-' : '+',
 									  	accel->acc_x_integral,
                                         accel->acc_x_fractional);
 
-   printf("              y: %c%d.%02d g\n", accel->acc_y_sign ? '-' : '+',
+   printf("                 y: %c%d.%02d g\n", accel->acc_y_sign ? '-' : '+',
                                         accel->acc_y_integral,
                                         accel->acc_y_fractional);
 
-   printf("              z: %c%d.%02d g\n", accel->acc_z_sign ? '-' : '+',
+   printf("                 z: %c%d.%02d g\n", accel->acc_z_sign ? '-' : '+',
                                         accel->acc_z_integral,
                                         accel->acc_z_fractional);
 }
@@ -97,22 +98,15 @@ static void print_results(const temperature_t* temp, const luminosity_t* lumi, c
 static void
 tcpip_handler(void)
 {
-	char *appdata;
-
-	static struct message *msg;
+	struct message *msg;
 
 	if(uip_newdata()) {
-		msg = (struct message *)uip_appdata;
-		PRINTF("DATA recv from '%s' \n", UIP_IP_BUF->srcipaddr.u8[9]);
-		print_results(msg->temp, msg->lumi, msg->accel);
+		msg = uip_appdata;
+		PRINTF("   DATA received from ");
+		PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
 		PRINTF("\n");
-
-#if SERVER_REPLY
-		PRINTF("DATA sending reply\n");
-		uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
-		uip_udp_packet_send(server_conn, "Reply", sizeof("Reply"));
-		uip_create_unspecified(&server_conn->ripaddr);
-#endif
+		print_results(&msg->temp, &msg->lumi, &msg->accel);
+		PRINTF("\n");
 	}
 }
 /*---------------------------------------------------------------------------*/

@@ -53,19 +53,19 @@
 #include "net/ip/uip-debug.h"
 
 #ifndef PERIOD
-#define PERIOD 60
+#define PERIOD 10
 #endif
 
 #define START_INTERVAL	(15 * CLOCK_SECOND)
 #define SEND_INTERVAL	(PERIOD * CLOCK_SECOND)
-#define SEND_TIME       (random_rand() % (SEND_INTERVAL))
+#define SEND_TIME       SEND_INTERVAL
 #define MAX_PAYLOAD_LEN	30
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
 /* This is the structure of messages. */
-typedef struct message {
+struct message {
   temperature_t temp;
   luminosity_t lumi;
   acceleration_t accel;
@@ -91,7 +91,7 @@ static void
 send_packet(void *ptr)
 {
 	static int seq_id;
-	char buf[MAX_PAYLOAD_LEN];
+//	char buf[MAX_PAYLOAD_LEN];
 
 	static struct message msg;
 
@@ -121,9 +121,11 @@ send_packet(void *ptr)
 //    char* message = (char *)msg;
 //    message[strlen(message)] =
 
-	PRINTF("DATA %d send to %d'\n", seq_id, server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1]);
+	PRINTF("DATA %d send to ", seq_id);
+	PRINT6ADDR(server_ipaddr.u8);
+	PRINTF("\n");
 //	sprintf(buf, "Hello %d from the client", seq_id);
-	uip_udp_packet_sendto(client_conn, &msg, strlen(buf), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+	uip_udp_packet_sendto(client_conn, &msg, sizeof(msg), &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 }
 /*---------------------------------------------------------------------------*/
 static void
